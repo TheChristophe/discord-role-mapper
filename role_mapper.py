@@ -55,21 +55,35 @@ class RoleMapper(commands.Cog):
             self.combinations.append(
                 RoleMapping(list(map(lambda id: self.server.get_role(int(id)), role["requirements"])),
                             self.server.get_role(role['effect'])))
-        print("references set up")
         for role in self.combinations:
             print(",".join(map(lambda role: role.name, role.needed)), "=>", role.effect.name)
 
-    @commands.Cog.listener("on_member_update")
-    async def on_member_update(self, before: discord.Member, after: discord.Member):
+    async def refresh_roles(self, member: discord.Member):
         for role in self.combinations:
             needed = role.needed
             result = role.effect
-            if not has_roles(after, needed) and has_role(after, result):
+            if not has_roles(member, needed) and has_role(member, result):
                 print("wrongly have {}, removing".format(result))
-                await after.remove_roles(result)
-            if has_roles(after, needed) and not has_role(after, result):
+                await member.remove_roles(result)
+            if has_roles(member, needed) and not has_role(member, result):
                 print("missing {}, adding".format(result))
-                await after.add_roles(result)
+                await member.add_roles(result)
+
+    @commands.Cog.listener("on_member_update")
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
+        await self.refresh_roles(after)
+
+    @commands.command("rerun")
+    async def rerun_roles(self, ctx: discord.ext.commands.Context):
+        """Rerun checks on every user."""
+        server: discord.Guild = ctx.guild
+        if server is None:
+            await ctx.send("Not in a server!")
+            return
+        for member in server.members:
+            print(f"Checking {member.name}")
+            await self.refresh_roles(member)
+        await ctx.send("Ok done!")
 
 
 def setup(bot):
