@@ -1,0 +1,9 @@
+services:
+  role-mapper:
+    image: discord-role-mapper:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./config.json:/usr/src/app/config.json
+    restart: unless-stopped
